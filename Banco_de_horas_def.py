@@ -41,6 +41,10 @@ total_horas_extras = extensao_jornada.groupby("Servidor")["Horas/minutos extras"
 total_horas_compensadas = horas_compensadas.groupby("Servidor")["Horas a serem compensadas"].sum()
 
 # Layout com containers
+
+st.title("Banco de Horas Guarda Civil de Contagem")
+
+
 with st.container():
     col1, col2 = st.columns([1, 2])
     
