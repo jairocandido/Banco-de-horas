@@ -1,2 +1,2 @@
 pandas
-streamlit==1.27.2
+streamlit
