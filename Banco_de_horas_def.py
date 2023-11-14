@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import requests
 from io import BytesIO
 
 # Configurar a página
@@ -28,12 +29,20 @@ try:
     else:
         # Se nenhum arquivo for enviado, usar a URL do GitHub
         github_url = "https://raw.githubusercontent.com/jairocandido/Banco-de-horas/master/Recursos/Extens%C3%A3o%20de%20jornada%20x%20compensa%C3%A7%C3%A3o.xlsx"
-        extensao_jornada = pd.read_excel(github_url, sheet_name="EXTENSÃO DE JORNADA")
-        horas_compensadas = pd.read_excel(github_url, sheet_name="HORAS COMPENSADAS")
+        response = requests.get(github_url)
+        response.raise_for_status()  # Verifica se a requisição foi bem-sucedida
+        content = BytesIO(response.content)
+        extensao_jornada = pd.read_excel(content, sheet_name="EXTENSÃO DE JORNADA")
+        horas_compensadas = pd.read_excel(content, sheet_name="HORAS COMPENSADAS")
 
-    # Verificar se a coluna "Servidor" está presente em extensao_jornada
-    if "Servidor" not in extensao_jornada.columns:
-        raise KeyError("A coluna 'Servidor' não está presente no DataFrame.")
+    # Renomear a coluna 'Cod_Guarda' para 'Servidor'
+    extensao_jornada = extensao_jornada.rename(columns={'Cod_Guarda': 'Servidor'})
+
+    # Tratar dados faltantes
+    extensao_jornada["Horas/minutos extras"] = extensao_jornada["Horas/minutos extras"].fillna("0:00:00")
+    horas_compensadas["Horas a serem compensadas"] = horas_compensadas["Horas a serem compensadas"].fillna("0:00:00")
+    extensao_jornada["Servidor"] = extensao_jornada["Servidor"].fillna("Dados Faltantes")
+    horas_compensadas["Servidor"] = horas_compensadas["Servidor"].fillna("Dados Faltantes")
 
     # Restante do seu código permanece inalterado
     # ...
