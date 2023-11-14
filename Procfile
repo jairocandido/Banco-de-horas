@@ -1,1 +1,1 @@
-web:: gunicorn Banco_de_horas_def:app
+web: streamlit run Banco_de_horas_def.py
