@@ -20,49 +20,57 @@ def format_timedelta(timedelta):
 # Permitir upload do arquivo
 uploaded_file = st.file_uploader("Escolha um arquivo Excel", type=["xlsx"])
 
-if uploaded_file:
-    # Carregar os dados a partir do arquivo enviado
-    extensao_jornada = pd.read_excel(uploaded_file, sheet_name="EXTENSÃO DE JORNADA")
-    horas_compensadas = pd.read_excel(uploaded_file, sheet_name="HORAS COMPENSADAS")
-else:
-    # Se nenhum arquivo for enviado, usar a URL do GitHub
-    github_url = "https://raw.githubusercontent.com/jairocandido/Banco-de-horas/master/Recursos/Extens%C3%A3o%20de%20jornada%20x%20compensa%C3%A7%C3%A3o.xlsx"
-    extensao_jornada = pd.read_excel(github_url, sheet_name="EXTENSÃO DE JORNADA")
-    horas_compensadas = pd.read_excel(github_url, sheet_name="HORAS COMPENSADAS")
-
-# Restante do seu código permanece inalterado
-# ...
-
-# Calcular o saldo do banco de horas
-total_horas_extras = extensao_jornada.groupby("Servidor")["Horas/minutos extras"].sum()
-total_horas_compensadas = horas_compensadas.groupby("Servidor")["Horas a serem compensadas"].sum()
-banco_de_horas = pd.DataFrame({
-    "Total Horas Extras": total_horas_extras,
-    "Total Horas Compensadas": total_horas_compensadas
-})
-# ...
-
-# Layout com containers
-with st.container():
-    col1, col2 = st.columns([1, 2])
-    
-    # Selecionar servidor
-    with col1:
-        servidor_selecionado = st.selectbox('Selecione um servidor:', banco_de_horas.index.unique())
-    
-    # Mostrar saldo do banco de horas
-    with col2:
-        saldo = banco_de_horas.loc[servidor_selecionado, "Saldo Banco de Horas"]
-        st.metric("Saldo Banco de Horas", saldo)
-
-# Mostrar datas e horas de compensação
-with st.container():
-    compensacoes = horas_compensadas[horas_compensadas["Servidor"] == servidor_selecionado][["Data_compensacao", "Horas a serem compensadas"]]
-    compensacoes = compensacoes.dropna(subset=["Data_compensacao"])
-    if compensacoes.empty:
-        st.info('Este servidor não possui horas compensadas.')
+try:
+    if uploaded_file:
+        # Carregar os dados a partir do arquivo enviado
+        extensao_jornada = pd.read_excel(uploaded_file, sheet_name="EXTENSÃO DE JORNADA")
+        horas_compensadas = pd.read_excel(uploaded_file, sheet_name="HORAS COMPENSADAS")
     else:
-        compensacoes = compensacoes.rename(columns={"Data_compensacao": "Data de compensação", "Horas a serem compensadas": "Horas utilizadas"})
-        compensacoes["Data de compensação"] = compensacoes["Data de compensação"].dt.strftime('%Y-%m-%d')
-        compensacoes["Horas utilizadas"] = compensacoes["Horas utilizadas"].apply(format_timedelta)
-        st.table(compensacoes)
+        # Se nenhum arquivo for enviado, usar a URL do GitHub
+        github_url = "https://raw.githubusercontent.com/jairocandido/Banco-de-horas/master/Recursos/Extens%C3%A3o%20de%20jornada%20x%20compensa%C3%A7%C3%A3o.xlsx"
+        extensao_jornada = pd.read_excel(github_url, sheet_name="EXTENSÃO DE JORNADA")
+        horas_compensadas = pd.read_excel(github_url, sheet_name="HORAS COMPENSADAS")
+
+    # Verificar se a coluna "Servidor" está presente em extensao_jornada
+    if "Servidor" not in extensao_jornada.columns:
+        raise KeyError("A coluna 'Servidor' não está presente no DataFrame.")
+
+    # Restante do seu código permanece inalterado
+    # ...
+
+    # Calcular o saldo do banco de horas
+    total_horas_extras = extensao_jornada.groupby("Servidor")["Horas/minutos extras"].sum()
+    total_horas_compensadas = horas_compensadas.groupby("Servidor")["Horas a serem compensadas"].sum()
+    banco_de_horas = pd.DataFrame({
+        "Total Horas Extras": total_horas_extras,
+        "Total Horas Compensadas": total_horas_compensadas
+    })
+    # ...
+
+    # Layout com containers
+    with st.container():
+        col1, col2 = st.columns([1, 2])
+        
+        # Selecionar servidor
+        with col1:
+            servidor_selecionado = st.selectbox('Selecione um servidor:', banco_de_horas.index.unique())
+        
+        # Mostrar saldo do banco de horas
+        with col2:
+            saldo = banco_de_horas.loc[servidor_selecionado, "Saldo Banco de Horas"]
+            st.metric("Saldo Banco de Horas", saldo)
+
+    # Mostrar datas e horas de compensação
+    with st.container():
+        compensacoes = horas_compensadas[horas_compensadas["Servidor"] == servidor_selecionado][["Data_compensacao", "Horas a serem compensadas"]]
+        compensacoes = compensacoes.dropna(subset=["Data_compensacao"])
+        if compensacoes.empty:
+            st.info('Este servidor não possui horas compensadas.')
+        else:
+            compensacoes = compensacoes.rename(columns={"Data_compensacao": "Data de compensação", "Horas a serem compensadas": "Horas utilizadas"})
+            compensacoes["Data de compensação"] = compensacoes["Data de compensação"].dt.strftime('%Y-%m-%d')
+            compensacoes["Horas utilizadas"] = compensacoes["Horas utilizadas"].apply(format_timedelta)
+            st.table(compensacoes)
+
+except Exception as e:
+    st.error(f"Ocorreu um erro: {e}")
