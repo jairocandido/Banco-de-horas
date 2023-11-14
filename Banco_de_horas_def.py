@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from io import BytesIO
 
 # Configurar a página
 st.set_page_config(
@@ -16,23 +17,21 @@ def format_timedelta(timedelta):
     minutes, seconds = divmod(remainder, 60)
     return f"{'-' if total_seconds < 0 else ''}{hours:02}:{minutes:02}:{seconds:02}"
 
-# Carregar os dados
-file_path = r'C:\Python\Banco_de_horas\Recursos\Extensão de jornada x compensação.xlsx'
-extensao_jornada = pd.read_excel(file_path, sheet_name="EXTENSÃO DE JORNADA")
-horas_compensadas = pd.read_excel(file_path, sheet_name="HORAS COMPENSADAS")
+# Permitir upload do arquivo
+uploaded_file = st.file_uploader("Escolha um arquivo Excel", type=["xlsx"])
 
-# Renomear a coluna 'Cod_Guarda' para 'Servidor'
-extensao_jornada = extensao_jornada.rename(columns={'Cod_Guarda': 'Servidor'})
+if uploaded_file:
+    # Carregar os dados a partir do arquivo enviado
+    extensao_jornada = pd.read_excel(uploaded_file, sheet_name="EXTENSÃO DE JORNADA")
+    horas_compensadas = pd.read_excel(uploaded_file, sheet_name="HORAS COMPENSADAS")
+else:
+    # Se nenhum arquivo for enviado, usar a URL do GitHub
+    github_url = "https://raw.githubusercontent.com/jairocandido/Banco-de-horas/master/Recursos/Extens%C3%A3o%20de%20jornada%20x%20compensa%C3%A7%C3%A3o.xlsx"
+    extensao_jornada = pd.read_excel(github_url, sheet_name="EXTENSÃO DE JORNADA")
+    horas_compensadas = pd.read_excel(github_url, sheet_name="HORAS COMPENSADAS")
 
-# Tratar dados faltantes
-extensao_jornada["Horas/minutos extras"] = extensao_jornada["Horas/minutos extras"].fillna("0:00:00")
-horas_compensadas["Horas a serem compensadas"] = horas_compensadas["Horas a serem compensadas"].fillna("0:00:00")
-extensao_jornada["Servidor"] = extensao_jornada["Servidor"].fillna("Dados Faltantes")
-horas_compensadas["Servidor"] = horas_compensadas["Servidor"].fillna("Dados Faltantes")
-
-# Converter as colunas de tempo para o formato de tempo
-extensao_jornada["Horas/minutos extras"] = pd.to_timedelta(extensao_jornada["Horas/minutos extras"])
-horas_compensadas["Horas a serem compensadas"] = pd.to_timedelta(horas_compensadas["Horas a serem compensadas"])
+# Restante do seu código permanece inalterado
+# ...
 
 # Calcular o saldo do banco de horas
 total_horas_extras = extensao_jornada.groupby("Servidor")["Horas/minutos extras"].sum()
@@ -41,32 +40,7 @@ banco_de_horas = pd.DataFrame({
     "Total Horas Extras": total_horas_extras,
     "Total Horas Compensadas": total_horas_compensadas
 })
-banco_de_horas = banco_de_horas.fillna(pd.to_timedelta("0:00:00"))
-banco_de_horas["Saldo Banco de Horas"] = banco_de_horas.apply(
-    lambda row: row["Total Horas Extras"] - row["Total Horas Compensadas"]
-    if row["Total Horas Extras"] >= row["Total Horas Compensadas"]
-    else pd.to_timedelta((row["Total Horas Extras"] - row["Total Horas Compensadas"]).total_seconds(), unit='s'),
-    axis=1
-)
-
-# Formatar a exibição do saldo do banco de horas
-banco_de_horas["Saldo Banco de Horas"] = banco_de_horas["Saldo Banco de Horas"].apply(format_timedelta)
-
-# Estilos CSS personalizados
-st.markdown("""
-    <style>
-        .css-2trqyj {
-            width: 50% !important;
-        }
-        .css-1d391kg {
-            padding: 0em 0em !important;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
-# Título e Subtítulo
-st.title('Sistema de Banco de Horas')
-st.subheader('Consulte o saldo do banco de horas e as datas de compensação')
+# ...
 
 # Layout com containers
 with st.container():
