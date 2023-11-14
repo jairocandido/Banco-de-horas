@@ -1,2 +1,2 @@
-pandas==2.1.1
+pandas==latest_version
 streamlit==1.27.2
